@@ -1,7 +1,9 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import GUI from 'lil-gui';
-import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { GLTFLoader } from 'three/examples/jsm/Addons.js';
+import coffeeSmokeVertexShader from './shaders/coffeeSmoke/vertex.glsl';
+import coffeeSmokeFragmentShader from './shaders/coffeeSmoke/fragment.glsl';
 
 /**
  * Base
@@ -74,6 +76,35 @@ gltfLoader.load('./bakedModel.glb', (gltf) => {
 	scene.add(gltf.scene);
 });
 
+// Smoke geometry
+const smokeGeometry = new THREE.PlaneGeometry(1, 1, 16, 64);
+smokeGeometry.translate(0, 0.5, 0);
+smokeGeometry.scale(1.5, 6, 1.5);
+
+// Perlin texture
+const perlinTexture = textureLoader.load('./perlin.png');
+perlinTexture.wrapS = THREE.RepeatWrapping;
+perlinTexture.wrapT = THREE.RepeatWrapping;
+
+// Smoke material
+const smokeMaterial = new THREE.ShaderMaterial({
+	vertexShader: coffeeSmokeVertexShader,
+	fragmentShader: coffeeSmokeFragmentShader,
+	uniforms: {
+		uTime: new THREE.Uniform(0),
+		uPerlinTexture: new THREE.Uniform(perlinTexture),
+	},
+	side: THREE.DoubleSide,
+	transparent: true,
+	depthWrite: false,
+	// wireframe: true,
+});
+
+// Smoke mesh
+const smoke = new THREE.Mesh(smokeGeometry, smokeMaterial);
+smoke.position.y = 1.83;
+scene.add(smoke);
+
 /**
  * Animate
  */
@@ -81,6 +112,9 @@ const clock = new THREE.Clock();
 
 const tick = () => {
 	const elapsedTime = clock.getElapsedTime();
+
+	// Update smoke
+	smokeMaterial.uniforms.uTime.value = elapsedTime;
 
 	// Update controls
 	controls.update();
